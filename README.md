@@ -117,10 +117,6 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 - Documentation improvements
 - Translation updates
 
-## License
-
-[Your License Here]
-
 ## Disclaimer
 
 This framework is for educational and research purposes only. Use responsibly and only on systems you own or have explicit permission to test.
