@@ -6,20 +6,29 @@ Laboratorio de demostraciones de vulnerabilidades en sistemas MCP.
 
 Uso:
     python run_lab.py              # Ejecuta todas las demos
-    python run_lab.py --demo 1     # Ejecuta solo la demo 1
+    python run_lab.py --demo MCP01 # Ejecuta solo la demo MCP01
+    python run_lab.py --demo 1     # Ejecuta solo la demo MCP01
     python run_lab.py --list       # Lista las demos disponibles
 
 Demos:
-    1  Tool Misuse              — invocación de herramienta fuera de contexto
-    2  Tool Output Injection    — contaminación del razonamiento vía output
-    3  Context Truncation       — decisiones incorrectas por contexto truncado
-    4  Silent Failures          — respuestas vacías interpretadas como éxito
-    5  Multi-Agent Failures     — fallos acumulativos en orquestación
+    MCP01  Token Mismanagement & Secret Exposure
+    MCP02  Privilege Escalation via Scope Creep
+    MCP03  Tool Poisoning
+    MCP04  Software Supply Chain Attacks
+    MCP05  Command Injection & Execution
+    MCP06  Intent Flow Subversion
+    MCP07  Insufficient Authentication & Authorization
+    MCP08  Lack of Audit and Telemetry
+    MCP09  Shadow MCP Servers
+    MCP10  Context Injection & Over-Sharing
 """
 import sys
 import os
 import argparse
-import time
+import asyncio
+import inspect
+import importlib
+import re
 from i18n import get_i18n, t
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -28,46 +37,91 @@ from utils import Colors, print_banner, separator, wait
 
 DEMOS = {
     1: {
-        "title":   "Tool Misuse",
-        "module":  "demo1_tool_misuse",
+        "title":   "Token Mismanagement & Secret Exposure",
+        "module":  "demos.mcp01_token_exposure",
         "func":    "run_demo",
-        "summary": "Agente bancario manipulado para ejecutar transferencias en contexto read-only",
+        "summary": "Agente de auditoria expone credenciales por memoria, logs y prompt injection",
     },
     2: {
-        "title":   "Tool Output Injection",
-        "module":  "demo2_output_injection",
+        "title":   "Privilege Escalation via Scope Creep",
+        "module":  "demos.mcp02_privilege_escalation",
         "func":    "run_demo",
-        "summary": "Output JSON manipulado contamina el razonamiento del agente financiero",
+        "summary": "Permisos temporales de auditoria escalan a escritura en produccion",
     },
     3: {
-        "title":   "Context Truncation Attack",
-        "module":  "demo3_context_truncation",
+        "title":   "Tool Poisoning",
+        "module":  "demos.mcp03_tool_poisoning",
         "func":    "run_demo",
-        "summary": "Reglas de compliance perdidas por truncación → aprobación de contrato peligroso",
+        "summary": "Scanner comprometido devuelve falsos negativos e instrucciones ocultas",
     },
     4: {
-        "title":   "Silent Failures",
-        "module":  "demo4_silent_failures",
+        "title":   "Software Supply Chain Attacks",
+        "module":  "demos.mcp04_supply_chain",
         "func":    "run_demo",
-        "summary": "Pipeline CI/CD despliega código vulnerable interpretando {} como éxito",
+        "summary": "Dependencia alterada introduce una puerta trasera en el toolkit",
     },
     5: {
-        "title":   "Multi-Agent Orchestration Failures",
-        "module":  "demo5_multiagent",
+        "title":   "Command Injection & Execution",
+        "module":  "demos.mcp05_command_injection",
         "func":    "run_demo",
-        "summary": "Fallos acumulativos en 3 agentes aprueban préstamo fraudulento de $50,000",
+        "summary": "Input no sanitizado llega a comandos de sistema simulados",
+    },
+    6: {
+        "title":   "Intent Flow Subversion",
+        "module":  "demos.mcp06_intent_subversion",
+        "func":    "run_demo",
+        "summary": "Contexto recuperado cambia el objetivo del agente de compliance",
+    },
+    7: {
+        "title":   "Insufficient Authentication & Authorization",
+        "module":  "demos.mcp07_auth_authz",
+        "func":    "run_demo",
+        "summary": "Endpoint MCP expone reportes entre clientes sin autorizacion robusta",
+    },
+    8: {
+        "title":   "Lack of Audit and Telemetry",
+        "module":  "demos.mcp08_audit_telemetry",
+        "func":    "run_demo",
+        "summary": "Operacion critica ocurre sin trazabilidad forense suficiente",
+    },
+    9: {
+        "title":   "Shadow MCP Servers",
+        "module":  "demos.mcp09_shadow_servers",
+        "func":    "run_demo",
+        "summary": "Servidor MCP no gobernado con credenciales por defecto queda expuesto",
+    },
+    10: {
+        "title":   "Context Injection & Over-Sharing",
+        "module":  "demos.mcp10_context_oversharing",
+        "func":    "run_demo",
+        "summary": "Datos de un cliente se filtran a otra sesion por memoria compartida",
     },
 }
+
+
+def parse_demo_id(value: str) -> int:
+    """Accept numeric demo IDs and MCP-style IDs such as MCP01."""
+    normalized = value.strip().upper()
+    match = re.fullmatch(r"MCP0*([1-9]\d*)", normalized)
+    if match:
+        return int(match.group(1))
+
+    try:
+        return int(normalized)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"invalid demo value: {value!r}. Use a number (1-10) or MCP ID (MCP01-MCP10)."
+        ) from exc
 
 
 def print_demo_list():
     print_banner()
     print(f"{Colors.BOLD}{Colors.WHITE}{t('demo.list_title')}{Colors.RESET}\n")
     for num, info in DEMOS.items():
-        title = t(f"demos.{num}.title")
-        summary = t(f"demos.{num}.summary")
-        print(f"  {Colors.CYAN}{num}{Colors.RESET}  {Colors.BOLD}{title}{Colors.RESET}")
-        print(f"     {Colors.DIM}{summary}{Colors.RESET}\n")
+        demo_id = f"MCP{num:02d}"
+        print(f"  {Colors.CYAN}{demo_id}{Colors.RESET}  {Colors.BOLD}{info['title']}{Colors.RESET}")
+        print(f"     {Colors.DIM}{info['summary']}{Colors.RESET}\n")
+        print(f"     {Colors.DIM}Alias numerico: --demo {num}{Colors.RESET}\n")
 
 
 def run_single_demo(num: int):
@@ -76,14 +130,16 @@ def run_single_demo(num: int):
         sys.exit(1)
 
     info = DEMOS[num]
-    mod  = __import__(info["module"])
+    mod  = importlib.import_module(info["module"])
     func = getattr(mod, info["func"])
-    func()
+    result = func()
+    if inspect.isawaitable(result):
+        asyncio.run(result)
 
 
 def run_all_demos():
     print_banner()
-    print(f"{Colors.BOLD}{t('demo.running_all')}{Colors.RESET}")
+    print(f"{Colors.BOLD}Ejecutando las {len(DEMOS)} demostraciones MCP OWASP Top 10...{Colors.RESET}")
     print(f"{Colors.DIM}{t('demo.description')}{Colors.RESET}\n")
     wait(1.0)
 
@@ -101,37 +157,14 @@ def run_all_demos():
             print(f"{Colors.DIM}{t('demo.next')}{Colors.RESET}")
             wait(1.0)
 
-    # Resumen final con traducciones
     print(f"\n{Colors.BOLD}{Colors.CYAN}")
     print("╔══════════════════════════════════════════════════════════════════╗")
-    print(f"║{t('summary.title').center(66)}║")
+    print(f"║{'RESUMEN MCP OWASP TOP 10'.center(66)}║")
     print("╚══════════════════════════════════════════════════════════════════╝")
     print(Colors.RESET)
 
-    headers = t('summary.headers')
-    rows_data = []
-    for num in range(1, 6):
-        row_data = t(f'summary.table_rows.{num}')
-        rows_data.append((str(num), row_data[0], row_data[1], row_data[2]))
-
-    col_w = [6, 26, 24, 22]
-    divider = "  " + "─" * (sum(col_w) + len(col_w) * 3)
-
-    print(divider)
-    print("  " + "  ".join(
-        f"{Colors.BOLD}{Colors.WHITE}{h:<{w}}{Colors.RESET}"
-        for h, w in zip(headers, col_w)
-    ))
-    print(divider)
-
-    for row in rows_data:
-        num_cell  = f"{Colors.CYAN}{row[0]:<{col_w[0]}}{Colors.RESET}"
-        vuln_cell = f"{Colors.RED}{row[1]:<{col_w[1]}}{Colors.RESET}"
-        vec_cell  = f"{Colors.YELLOW}{row[2]:<{col_w[2]}}{Colors.RESET}"
-        ctrl_cell = f"{Colors.GREEN}{row[3]:<{col_w[3]}}{Colors.RESET}"
-        print("  " + "  ".join([num_cell, vuln_cell, vec_cell, ctrl_cell]))
-
-    print(divider)
+    for num, info in DEMOS.items():
+        print(f"  {Colors.CYAN}MCP{num:02d}{Colors.RESET}  {Colors.BOLD}{info['title']}{Colors.RESET}")
 
     print(f"""
 {Colors.BOLD}{t('summary.principles')}{Colors.RESET}
@@ -152,8 +185,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__
     )
-    parser.add_argument("--demo",  type=int, metavar="N",
-                        help="Ejecutar solo la demo número N (1-5)")
+    parser.add_argument("--demo",  type=parse_demo_id, metavar="N|MCPNN",
+                        help="Ejecutar solo la demo N (1-10) o ID MCP (MCP01-MCP10)")
     parser.add_argument("--list",  action="store_true",
                         help="Listar demos disponibles")
     parser.add_argument("--lang", type=str, choices=["es", "en"], default="es",

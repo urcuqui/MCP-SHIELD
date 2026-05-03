@@ -1,37 +1,83 @@
 # MCP-SHIELD
 
-A research-driven framework to analyze, exploit, and harden MCP servers powering AI agents. Includes vulnerability discovery, adversarial testing, and resilience techniques to secure tool execution, memory, and multi-step agent workflows.
+A comprehensive security framework demonstrating the **MCP OWASP Top 10** vulnerabilities through realistic scenarios. Built around a cybersecurity consulting firm that consumes MCP servers, exposing critical attack vectors and providing concrete mitigation strategies.
 
 ## Overview
 
-MCP-SHIELD is a security laboratory demonstrating critical vulnerabilities in Model Context Protocol (MCP) systems and AI agent architectures. Through 5 interactive demonstrations, this framework exposes real-world attack vectors and provides concrete mitigation strategies.
+MCP-SHIELD is a security laboratory that demonstrates all 10 critical vulnerabilities from the MCP OWASP Top 10. Each demonstration uses a realistic scenario where **SecureOps Consulting**, a cybersecurity firm, interacts with various MCP servers, showing how vulnerabilities can be exploited and mitigated.
 
 ## Features
 
-- **5 Security Demonstrations**: Interactive examples of MCP vulnerabilities
+- **Complete MCP OWASP Top 10 Coverage**: All 10 critical vulnerabilities demonstrated
+- **Realistic Agent Client**: AI agent acting as a security consultant
+- **Real-World Context**: Cybersecurity consulting firm scenarios
 - **Bilingual Support**: Full English and Spanish translations
-- **Attack & Defense**: Each demo shows both vulnerable and secure implementations
-- **FastMCP Integration**: Built on the FastMCP framework for realistic scenarios
-- **Educational Focus**: Detailed technical analysis and mitigation strategies
+- **Attack & Defense**: Each demo shows vulnerable and secure implementations
+- **FastMCP Integration**: Built on the FastMCP framework
 
-## Available Demonstrations
+## MCP OWASP Top 10 Demonstrations
 
 ![Demo List Screenshot](docs/demo-list-screenshot.png)
 
-### Demo 1: Tool Misuse
-Banking agent manipulated to execute transfers in read-only context via JSON prompt injection.
+### MCP01 - Token Mismanagement & Secret Exposure
+**Scenario**: Security audit agent discovers AWS credentials in model memory
+- Hard-coded API keys in MCP server configuration
+- Secrets leaked through debug logs and context
+- Token extraction via prompt injection
 
-### Demo 2: Tool Output Injection
-Manipulated JSON output contaminates financial agent reasoning through extra fields.
+### MCP02 - Privilege Escalation via Scope Creep
+**Scenario**: Read-only audit agent gains write access to production systems
+- Temporary permissions becoming permanent
+- Scope expansion through loose enforcement
+- Unauthorized system modifications
 
-### Demo 3: Context Truncation Attack
-Compliance rules lost by truncation leading to dangerous contract approval.
+### MCP03 - Tool Poisoning
+**Scenario**: Compromised vulnerability scanner returns false negatives
+- Malicious tool outputs manipulating agent decisions
+- Backdoored security tools providing misleading data
+- Biased context injection through poisoned tools
 
-### Demo 4: Silent Failures
-CI/CD pipeline deploys vulnerable code by interpreting `{}` as success.
+### MCP04 - Software Supply Chain Attacks
+**Scenario**: Tampered dependency in security assessment toolkit
+- Compromised Python packages in MCP server
+- Backdoored libraries altering agent behavior
+- Dependency confusion attacks
 
-### Demo 5: Multi-Agent Orchestration Failures
-Cumulative failures across 3 agents approve fraudulent $50,000 loan.
+### MCP05 - Command Injection & Execution
+**Scenario**: Penetration testing agent executing malicious commands
+- Unsanitized input in system calls
+- Shell injection through tool parameters
+- Code execution via crafted prompts
+
+### MCP06 - Intent Flow Subversion
+**Scenario**: Compliance check agent redirected to approve violations
+- Malicious instructions in retrieved context
+- Agent hijacking through secondary instruction channels
+- Goal manipulation via context poisoning
+
+### MCP07 - Insufficient Authentication & Authorization
+**Scenario**: Unauthenticated access to client security reports
+- Missing identity verification in MCP endpoints
+- Weak authorization checks on sensitive operations
+- Cross-client data access
+
+### MCP08 - Lack of Audit and Telemetry
+**Scenario**: Security incident with no forensic trail
+- Missing logs of critical tool invocations
+- Incomplete audit trails for investigations
+- No telemetry for anomaly detection
+
+### MCP09 - Shadow MCP Servers
+**Scenario**: Rogue MCP instance with default credentials discovered
+- Unsupervised deployments outside governance
+- Development servers exposed to production
+- Unapproved tools with security gaps
+
+### MCP10 - Context Injection & Over-Sharing
+**Scenario**: Client A's confidential data leaked to Client B's session
+- Shared context windows across sessions
+- Sensitive information bleeding between tasks
+- Cross-tenant data exposure
 
 ## Installation
 
@@ -47,90 +93,105 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
+# List all MCP OWASP Top 10 demonstrations
+python run_lab.py --list
+
 # Run all demonstrations
 python run_lab.py
 
-# Run a specific demo (1-5)
-python run_lab.py --demo 1
-
-# List available demos
-python run_lab.py --list
+# Run a specific vulnerability demo (MCP01-MCP10)
+python run_lab.py --demo MCP01
 
 # Run in English
 python run_lab.py --lang en
 
-# Run specific demo in English
-python run_lab.py --demo 2 --lang en
+# Run specific demo in Spanish
+python run_lab.py --demo MCP03 --lang es
 ```
 
-## Security Principles
+## Architecture
 
-Each demonstration highlights a key security control:
-
-| Demo | Vulnerability | Attack Vector | Key Control |
-|------|--------------|---------------|-------------|
-| 1 | Tool Misuse | JSON prompt injection | Context binding |
-| 2 | Output Injection | Extra JSON fields | Schema validation |
-| 3 | Context Truncation | Oversized input | Integrity markers |
-| 4 | Silent Failures | `{}` response | Fail-closed design |
-| 5 | Multi-Agent Cascade | Cumulative errors | Chain of trust |
+```
+┌─────────────────────────────────────┐
+│   SecureOps Consulting Agent        │
+│   (AI Security Consultant)          │
+└──────────────┬──────────────────────┘
+               │
+               │ MCP Protocol
+               │
+┌──────────────▼──────────────────────┐
+│   Various MCP Servers:              │
+│   - Vulnerability Scanner           │
+│   - Compliance Checker              │
+│   - Penetration Testing Tools       │
+│   - Audit Log Analyzer              │
+│   - Client Report Generator         │
+└─────────────────────────────────────┘
+```
 
 ## Project Structure
 
 ```
 mcp-shield/
-├── run_lab.py              # Main entry point
-├── demo1_tool_misuse.py    # Tool misuse demonstration
-├── demo2_output_injection.py
-├── demo3_context_truncation.py
-├── demo4_silent_failures.py
-├── demo5_multiagent.py
-├── i18n.py                 # Internationalization support
-├── utils.py                # Utility functions
+├── run_lab.py                    # Main entry point
+├── agent_client.py               # SecureOps consulting agent
+├── demos/
+│   ├── mcp01_token_exposure.py
+│   ├── mcp02_privilege_escalation.py
+│   ├── mcp03_tool_poisoning.py
+│   ├── mcp04_supply_chain.py
+│   ├── mcp05_command_injection.py
+│   ├── mcp06_intent_subversion.py
+│   ├── mcp07_auth_authz.py
+│   ├── mcp08_audit_telemetry.py
+│   ├── mcp09_shadow_servers.py
+│   └── mcp10_context_oversharing.py
+├── servers/
+│   ├── vulnerable/               # Vulnerable MCP servers
+│   └── secure/                   # Hardened MCP servers
+├── i18n.py                       # Internationalization
+├── utils.py                      # Utility functions
 └── README.md
 ```
 
-## Technical Details
+## Security Controls Matrix
 
-### Vulnerability Categories
-
-1. **Tool Misuse**: Agents executing privileged operations outside their authorized context
-2. **Output Injection**: Malicious data in tool responses contaminating agent reasoning
-3. **Context Truncation**: Critical information lost due to context window limits
-4. **Silent Failures**: Empty responses misinterpreted as successful operations
-5. **Multi-Agent Failures**: Trust assumptions causing cascading failures
-
-### Mitigation Strategies
-
-- **Context Binding**: Tie tool permissions to operational context
-- **Schema Validation**: Strict validation of tool outputs
-- **Integrity Markers**: Verifiable markers in critical sections
-- **Fail-Closed Design**: Explicit errors instead of empty responses
-- **Chain of Trust**: Each agent verifies previous steps
+| MCP ID | Vulnerability | Attack Vector | Mitigation |
+|--------|--------------|---------------|------------|
+| MCP01 | Token Exposure | Prompt injection | Secret management, rotation |
+| MCP02 | Privilege Escalation | Scope creep | Least privilege, time-boxing |
+| MCP03 | Tool Poisoning | Compromised tools | Tool verification, sandboxing |
+| MCP04 | Supply Chain | Dependency tampering | SCA, signature verification |
+| MCP05 | Command Injection | Unsanitized input | Input validation, parameterization |
+| MCP06 | Intent Subversion | Context hijacking | Intent verification, isolation |
+| MCP07 | Auth/AuthZ | Missing verification | Strong authentication, RBAC |
+| MCP08 | No Audit | Missing telemetry | Comprehensive logging, SIEM |
+| MCP09 | Shadow Servers | Rogue deployments | Discovery, governance |
+| MCP10 | Context Leakage | Shared memory | Context isolation, encryption |
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for:
-
-- New vulnerability demonstrations
-- Additional mitigation techniques
-- Documentation improvements
-- Translation updates
+Contributions welcome! Areas of interest:
+- Additional attack scenarios
+- New mitigation techniques
+- Real-world case studies
+- Translation improvements
 
 ## License
 
-[Your License Here]
+MIT License
 
 ## Disclaimer
 
-This framework is for educational and research purposes only. Use responsibly and only on systems you own or have explicit permission to test.
+**For educational and research purposes only.** Use responsibly and only on systems you own or have explicit permission to test.
 
 ## References
 
+- [MCP OWASP Top 10](https://owasp.org/www-project-model-context-protocol/)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io)
 - [FastMCP Framework](https://github.com/jlowin/fastmcp)
-- OWASP AI Security Guidelines
+- [OWASP AI Security Guidelines](https://owasp.org/www-project-ai-security-and-privacy-guide/)
 
 ## Contact
 
-[Your contact information]
+For questions or collaboration: [Your contact information]
